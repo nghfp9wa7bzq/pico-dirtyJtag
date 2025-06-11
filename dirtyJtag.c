@@ -38,12 +38,12 @@ void djtag_init()
     init_jtag(&jtag, 1000, PIN_TCK, PIN_TDI, PIN_TDO, PIN_TMS, 255, 255);
     #endif
 }
-typedef uint8_t cmd_buffer[64];
+typedef uint8_t cmd_buffer[512];
 static uint wr_buffer_number = 0;
 static uint rd_buffer_number = 0; 
 typedef struct buffer_info
 {
-    volatile uint8_t count;
+    volatile uint32_t count;
     volatile uint8_t busy;
     cmd_buffer buffer;
 } buffer_info;
@@ -80,7 +80,7 @@ void jtag_main_task()
         {
             led_rx( 1 );
             uint bnum = wr_buffer_number;
-            uint count = tud_vendor_read(buffer_infos[wr_buffer_number].buffer, 64);
+            uint count = tud_vendor_read(buffer_infos[wr_buffer_number].buffer, bytes_available);
             if (count != 0)
             {
 /*

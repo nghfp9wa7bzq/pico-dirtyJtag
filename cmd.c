@@ -209,7 +209,7 @@ void cmd_handle(pio_jtag_inst_t* jtag, uint8_t* rxbuf, uint32_t count, uint8_t* 
 }
 
 static uint32_t cmd_info(uint8_t *buffer) {
-  char info_string[10] = "DJTAG2\n";
+  char info_string[10] = "DJTAG3\n";
   memcpy(buffer, info_string, 10);
   return 10;
 }
@@ -223,24 +223,27 @@ static void cmd_freq(pio_jtag_inst_t* jtag, const uint8_t *commands) {
 static uint32_t cmd_xfer(pio_jtag_inst_t* jtag, const uint8_t *commands, bool extend_length, bool no_read, uint8_t* tx_buf) {
   uint16_t transferred_bits = 0;
   uint8_t* output_buffer = 0;
-  transferred_bits = commands[1];
+  transferred_bits |= (commands[1] << 8);
+  transferred_bits |= commands[2];
   uint16_t transferred_bytes = 0;
 
   // For version 3, two bytes hold the number of bits.
   // The offset is 3.
   // Earlier versions use only one byte,
   // so the offset is 2.
-  uint8_t commands_offset = 2;
+  uint8_t commands_offset = 3;
 
+/*
+  // can be removed because it is not used in openFPGALoader for version 3
   if (extend_length)
   {
     transferred_bits += 256;
   }
-
+*/
   // Ensure we don't do over-read
-  if (transferred_bits > 62 * 8)
+  if (transferred_bits > 505 * 8)
   {
-    transferred_bits = 62 * 8;
+    transferred_bits = 505 * 8;
   }
 
   // Calculate the number of bytes big enough to hold all the bits.
@@ -269,7 +272,9 @@ static uint32_t cmd_xfer(pio_jtag_inst_t* jtag, const uint8_t *commands, bool ex
   print_buffer(output_buffer, transferred_bytes);
 #endif
 
-  return transferred_bytes;
+  // Need to advance commands with an additional byte
+  // if using version 3.
+  return transferred_bytes + commands_offset - 2;
 }
 
 static void cmd_setsig(pio_jtag_inst_t* jtag, const uint8_t *commands) {
