@@ -33,6 +33,7 @@
 #include "tusb.h"
 #include "pio_jtag.h"
 #include "cmd.h"
+#include "util.h"
 
 
 enum CommandIdentifier {
