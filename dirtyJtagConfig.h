@@ -38,6 +38,11 @@
 // Default is 0 - use RST and TRST pins.
 #define NO_RST_PINS 0
 
+// Enable DMA in pio_jtag files.
+// Otherwise possibly slower byte by byte transfers
+// are used between buffers and JTAG FIFOs.
+// Default is 1 - use DMA.
+#define JTAG_DMA 1
 
 
 #define BOARD_PICO           0

@@ -32,8 +32,6 @@
 
 void jtag_task();//to process USB OUT packets while waiting for DMA to finish
 
-#define DMA
-
 static bool last_tdo = false;
 
 #if 0
@@ -63,9 +61,8 @@ static void switch_pins_source(const pio_jtag_inst_t *jtag, bool gpio)
 
 
 
-#ifdef DMA
-
-static int tx_dma_chan = -1;
+#if JTAG_DMA
+static int tx_dma_chan;
 static int rx_dma_chan;
 static dma_channel_config tx_c;
 static dma_channel_config rx_c;
@@ -73,43 +70,38 @@ static dma_channel_config rx_c;
 
 void dma_init()
 {
-#ifdef DMA
-    if (tx_dma_chan == -1)
-    {
-        // Configure a channel to write a buffer to PIO0
-        // SM0's TX FIFO, paced by the data request signal from that peripheral.
-        tx_dma_chan = dma_claim_unused_channel(true);
-        tx_c = dma_channel_get_default_config(tx_dma_chan);
-        channel_config_set_transfer_data_size(&tx_c, DMA_SIZE_8);
-        channel_config_set_read_increment(&tx_c, true);
-        channel_config_set_dreq(&tx_c, DREQ_PIO0_TX0);
-            dma_channel_configure(
-            tx_dma_chan,
-            &tx_c,
-            &pio0_hw->txf[0], // Write address (only need to set this once)
-            NULL,             // Don't provide a read address yet
-            0,                // Don't provide the count yet
-            false             // Don't start yet
-        );
-        // Configure a channel to read a buffer from PIO0
-        // SM0's RX FIFO, paced by the data request signal from that peripheral.
-        rx_dma_chan = dma_claim_unused_channel(true);
-        rx_c = dma_channel_get_default_config(rx_dma_chan);
-        channel_config_set_transfer_data_size(&rx_c, DMA_SIZE_8);
-        channel_config_set_write_increment(&rx_c, false);
-        channel_config_set_read_increment(&rx_c, false);
-        channel_config_set_dreq(&rx_c, DREQ_PIO0_RX0);
-        dma_channel_configure(
-            rx_dma_chan,
-            &rx_c,
-            NULL,             // Dont provide a write address yet
-            &pio0_hw->rxf[0], // Read address (only need to set this once)
-            0,                // Don't provide the count yet
-            false             // Don't start yet
-            );
-    }
-#endif
+    // Configure a channel to write a buffer to PIO0
+    // SM0's TX FIFO, paced by the data request signal from that peripheral.
+    tx_dma_chan = dma_claim_unused_channel(true);
+    tx_c = dma_channel_get_default_config(tx_dma_chan);
+    channel_config_set_transfer_data_size(&tx_c, DMA_SIZE_8);
+    channel_config_set_read_increment(&tx_c, true);
+    channel_config_set_dreq(&tx_c, DREQ_PIO0_TX0);
+    dma_channel_configure(
+        tx_dma_chan,
+        &tx_c,
+        pio0_hw->txf,     // Write address (only need to set this once)
+        NULL,             // Don't provide a read address yet
+        0,                // Don't provide the count yet
+        false             // Don't start yet
+    );
 
+    // Configure a channel to read a buffer from PIO0
+    // SM0's RX FIFO, paced by the data request signal from that peripheral.
+    rx_dma_chan = dma_claim_unused_channel(true);
+    rx_c = dma_channel_get_default_config(rx_dma_chan);
+    channel_config_set_transfer_data_size(&rx_c, DMA_SIZE_8);
+    channel_config_set_write_increment(&rx_c, false);
+    channel_config_set_read_increment(&rx_c, false);
+    channel_config_set_dreq(&rx_c, DREQ_PIO0_RX0);
+    dma_channel_configure(
+        rx_dma_chan,
+        &rx_c,
+        NULL,             // Dont provide a write address yet
+        pio0_hw->rxf,     // Read address (only need to set this once)
+        0,                // Don't provide the count yet
+        false             // Don't start yet
+    );
 }
 
 
@@ -138,10 +130,9 @@ void __time_critical_func(pio_jtag_write)(const pio_jtag_inst_t *jtag, const uin
 
     //kick off the process by sending the len to the tx pipeline
     *(io_rw_32*)txfifo = len-1;
-#ifdef DMA
+#if JTAG_DMA
     if (byte_length > 4)
     {
-        dma_init();
         channel_config_set_read_increment(&tx_c, no_bsrc ? false : true);
         channel_config_set_write_increment(&rx_c, bdst ? true : false);
         dma_channel_set_config(rx_dma_chan, &rx_c, false);
@@ -267,6 +258,10 @@ void jtag_init(pio_jtag_inst_t *jtag)
                  );
 
     jtag_set_clk_freq(jtag, freq);
+
+#if JTAG_DMA
+    dma_init();
+#endif
 }
 
 void jtag_set_clk_freq(const pio_jtag_inst_t *jtag, uint freq_khz) {
