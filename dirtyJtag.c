@@ -30,7 +30,6 @@
 
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "pico/binary_info.h"
 #include "hardware/pio.h"
 #include "pico/multicore.h"
 #include "pio_jtag.h"
@@ -45,28 +44,11 @@
 
 #define MULTICORE
 
-void init_pins()
-{
-    bi_decl(bi_4pins_with_names(PIN_TCK, "TCK", PIN_TDI, "TDI", PIN_TDO, "TDO", PIN_TMS, "TMS"));
-    #if !( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
-    bi_decl(bi_2pins_with_names(PIN_RST, "RST", PIN_TRST, "TRST"));
-    #endif
-}
-
 pio_jtag_inst_t jtag = {
             .pio = pio0,
             .sm = 0
 };
 
-void djtag_init()
-{
-    init_pins();
-    #if !( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
-    init_jtag(&jtag, 1000, PIN_TCK, PIN_TDI, PIN_TDO, PIN_TMS, PIN_RST, PIN_TRST);
-    #else
-    init_jtag(&jtag, 1000, PIN_TCK, PIN_TDI, PIN_TDO, PIN_TMS, 255, 255);
-    #endif
-}
 typedef uint8_t cmd_buffer[64];
 static uint wr_buffer_number = 0;
 static uint rd_buffer_number = 0; 
@@ -138,7 +120,6 @@ void jtag_task()
 #ifdef MULTICORE
 void core1_entry() {
 
-    djtag_init();
     while (1)
     {
         uint rx_num = multicore_fifo_pop_blocking();
@@ -180,6 +161,7 @@ int main()
     board_init();
     usb_serial_init();
     tusb_init();
+    jtag_init(&jtag);
 
     led_init( LED_INVERTED, PIN_LED_TX, PIN_LED_RX, PIN_LED_ERROR );
 #if ( CDC_UART_INTF_COUNT > 0 )
@@ -192,8 +174,6 @@ int main()
 
 #ifdef MULTICORE
     multicore_launch_core1(core1_entry);
-#else 
-    djtag_init();
 #endif
     while (1) {
         jtag_main_task();

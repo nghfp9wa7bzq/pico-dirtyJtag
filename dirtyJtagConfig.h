@@ -31,7 +31,12 @@
 #ifndef DirtyJtagConfig_h
 #define DirtyJtagConfig_h
 
-
+// Set this to 1 if you definitely don't want to use RST and TRST
+// pins for the JTAG interface.
+// (Because e.g. it would fry the programmed chip.)
+// (Of course you don't have to physically connect them anyway.)
+// Default is 0 - use RST and TRST pins.
+#define NO_RST_PINS 0
 
 
 
@@ -156,6 +161,7 @@
 // of damage so these pins are not going to be setup
 // #define PIN_RST  X
 // #define PIN_TRST X
+#define NO_RST_PINS 1
 
 #define LED_INVERTED   0
 #define PIN_LED_TX     25

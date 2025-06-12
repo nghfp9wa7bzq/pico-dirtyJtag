@@ -25,6 +25,7 @@
 
 #include <hardware/clocks.h>
 #include "hardware/dma.h"
+#include "pico/binary_info.h"
 #include "dirtyJtagConfig.h"
 #include "pio_jtag.h"
 #include "jtag.pio.h"
@@ -225,41 +226,44 @@ uint8_t __time_critical_func(pio_jtag_write_tms_blocking)(const pio_jtag_inst_t 
     return last_tdo ? 0xFF : 0x00;
 }
 
-static void init_pins(uint pin_tck, uint pin_tdi, uint pin_tdo, uint pin_tms, uint pin_rst, uint pin_trst)
+void jtag_init(pio_jtag_inst_t *jtag)
 {
-    #if !( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
-    // emulate open drain with pull up and direction
-    gpio_pull_up(pin_rst);
-    gpio_clr_mask((1u << pin_tms) | (1u << pin_rst) | (1u << pin_trst));
-    gpio_init_mask((1u << pin_tms) | (1u << pin_rst) | (1u << pin_trst));
-    gpio_set_dir_masked( (1u << pin_tms) | (1u << pin_trst), 0xffffffffu);
-    gpio_set_dir(pin_rst, false);
-    #else
-    gpio_clr_mask((1u << pin_tms));
-    gpio_init_mask((1u << pin_tms));
-    gpio_set_dir_masked( (1u << pin_tms), 0xffffffffu);
-    #endif
-    gpio_init(pin_tdo);
-    gpio_set_dir(pin_tdo, false);
-}
+    uint freq = 1000;
 
-void init_jtag(pio_jtag_inst_t* jtag, uint freq, uint pin_tck, uint pin_tdi, uint pin_tdo, uint pin_tms, uint pin_rst, uint pin_trst)
-{
-    init_pins(pin_tck, pin_tdi, pin_tdo, pin_tms, pin_rst, pin_trst);
-    jtag->pin_tdi = pin_tdi;
-    jtag->pin_tdo = pin_tdo;
-    jtag->pin_tck = pin_tck;
-    jtag->pin_tms = pin_tms;
-    #if !( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
-    jtag->pin_rst = pin_rst;
-    jtag->pin_trst = pin_trst;
-    #endif
+    bi_decl(bi_4pins_with_names(PIN_TCK, "TCK", PIN_TDI, "TDI", PIN_TDO, "TDO", PIN_TMS, "TMS"));
+
+#if !NO_RST_PINS
+    bi_decl(bi_2pins_with_names(PIN_RST, "RST", PIN_TRST, "TRST"));
+
+    // emulate open drain with pull up and direction
+    gpio_pull_up(PIN_RST);
+    gpio_clr_mask((1u << PIN_TMS) | (1u << PIN_RST) | (1u << PIN_TRST));
+    gpio_init_mask((1u << PIN_TMS) | (1u << PIN_RST) | (1u << PIN_TRST));
+    gpio_set_dir_masked( (1u << PIN_TMS) | (1u << PIN_TRST), 0xffffffffu);
+    gpio_set_dir(PIN_RST, false);
+
+    jtag->pin_rst = PIN_RST;
+    jtag->pin_trst = PIN_TRST;
+#else
+    gpio_clr_mask((1u << PIN_TMS));
+    gpio_init_mask((1u << PIN_TMS));
+    gpio_set_dir_masked( (1u << PIN_TMS), 0xffffffffu);
+#endif
+
+    gpio_init(PIN_TDO);
+    gpio_set_dir(PIN_TDO, false);
+
+    jtag->pin_tdi = PIN_TDI;
+    jtag->pin_tdo = PIN_TDO;
+    jtag->pin_tck = PIN_TCK;
+    jtag->pin_tms = PIN_TMS;
+
     uint16_t clkdiv = 31;  // around 1 MHz @ 125MHz clk_sys
     pio_jtag_init(jtag->pio, jtag->sm,
                     clkdiv,
-                    pin_tck,
-                    pin_tdi,
-                    pin_tdo
+                    PIN_TCK,
+                    PIN_TDI,
+                    PIN_TDO
                  );
 
     jtag_set_clk_freq(jtag, freq);
@@ -273,7 +277,7 @@ void jtag_set_clk_freq(const pio_jtag_inst_t *jtag, uint freq_khz) {
     pio_sm_set_clkdiv_int_frac(pio0, jtag->sm, divider, 0);
 }
 
-void jtag_transfer(const pio_jtag_inst_t *jtag, uint32_t length, const uint8_t* in, uint8_t* out)
+void jtag_transfer(const pio_jtag_inst_t *jtag, uint32_t length, const uint8_t *in, uint8_t *out)
 {
     /* set tms to low */
     jtag_set_tms(jtag, false);
