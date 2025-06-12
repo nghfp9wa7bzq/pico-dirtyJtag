@@ -49,18 +49,6 @@ static void dma_handler();
 
 static void set_tx_dma(volatile uint8_t *l_tx_write_address, struct uart_device *uart);
 
-static uint n_bits(uint n)
-{
-	int i;
-	for (i = 0; i < 31; i++)
-	{
-		n >>= 1;
-		if (n == 0)
-		break;
-	}
-	return i+1;
-}
-
 uint setup_usart_tx_dma(uart_inst_t *uart, volatile uint8_t *tx_address, uint buffer_size)
 {
 	uint dma_chan = dma_claim_unused_channel(true);
