@@ -131,25 +131,25 @@ void cdc_uart_init_(int itf, uart_inst_t *const uart_, int uart_rx_pin, int uart
 	uart_set_hw_flow(uart->inst, false, false);
 	uart_set_format(uart->inst, 8, 1, UART_PARITY_NONE);
 	uart_set_fifo_enabled(uart->inst, true);
-	uart->tx_dma_channel = setup_usart_tx_dma(uart->inst, &uart->tx_buf[0], UART_BUFFER_SIZE);
-	uart->rx_dma_channel = setup_usart_rx_dma(uart->inst, &uart->rx_buf[0], dma_handler, UART_BUFFER_SIZE);
-	uart->tx_write_address = &uart->tx_buf[0];
-	uart->rx_read_address = &uart->rx_buf[0];
+	uart->tx_dma_channel = setup_usart_tx_dma(uart->inst, uart->tx_buf, UART_BUFFER_SIZE);
+	uart->rx_dma_channel = setup_usart_rx_dma(uart->inst, uart->rx_buf, dma_handler, UART_BUFFER_SIZE);
+	uart->tx_write_address = uart->tx_buf;
+	uart->rx_read_address = uart->rx_buf;
 	uart->n_checks = 0;
 }
 
 void set_tx_dma(uint8_t *l_tx_write_address, struct uart_device *uart)
 {
 	uint8_t *ra = (uint8_t *)(dma_channel_hw_addr(uart->tx_dma_channel)->read_addr);
-	if (ra >= (&uart->tx_buf[0] + UART_BUFFER_SIZE))
+	if (ra >= (uart->tx_buf + UART_BUFFER_SIZE))
 	{
-		assert(ra == (&uart->tx_buf[0] + UART_BUFFER_SIZE));
-		dma_channel_set_read_addr(uart->tx_dma_channel, &uart->tx_buf[0], false);
-		ra = (uint8_t*)&uart->tx_buf[0];
+		assert(ra == (uart->tx_buf + UART_BUFFER_SIZE));
+		dma_channel_set_read_addr(uart->tx_dma_channel, uart->tx_buf, false);
+		ra = (uint8_t*)uart->tx_buf;
 	}
 	if (ra != l_tx_write_address)
 	{
-		size_t length = (l_tx_write_address >= ra) ? (l_tx_write_address - ra) : (UART_BUFFER_SIZE - (ra - &uart->tx_buf[0]));
+		size_t length = (l_tx_write_address >= ra) ? (l_tx_write_address - ra) : (UART_BUFFER_SIZE - (ra - uart->tx_buf));
 		dma_channel_set_trans_count(uart->tx_dma_channel, length, true);
 	}
 }
@@ -166,7 +166,7 @@ static void dma_handler()
 		
 		if (dma_channel_get_irq1_status(uart->rx_dma_channel))
 		{
-			dma_channel_set_write_addr(uart->rx_dma_channel, &uart->rx_buf[0], true);
+			dma_channel_set_write_addr(uart->rx_dma_channel, uart->rx_buf, true);
 		}
 		if (dma_channel_get_irq1_status(uart->tx_dma_channel))
 		{
@@ -193,7 +193,7 @@ void cdc_uart_task(void)
 			uint8_t *wa = (uint8_t*)(dma_channel_hw_addr(uart->rx_dma_channel)->write_addr);
 			if (wa == &uart->rx_buf[UART_BUFFER_SIZE])
 			{
-				wa = &uart->rx_buf[0];
+				wa = uart->rx_buf;
 			}
 			uint32_t rx_used_space = (wa >= uart->rx_read_address) ? (wa - uart->rx_read_address) : (wa + UART_BUFFER_SIZE - uart->rx_read_address);
 			uart->n_checks++;
