@@ -35,11 +35,11 @@
 static struct uart_device
 {
 	uart_inst_t *inst;
-	volatile uint8_t tx_buf[UART_BUFFER_SIZE];
-	volatile uint8_t rx_buf[UART_BUFFER_SIZE];
+	uint8_t tx_buf[UART_BUFFER_SIZE];
+	uint8_t rx_buf[UART_BUFFER_SIZE];
 	uint rx_dma_channel;
 	uint tx_dma_channel;
-	volatile uint8_t *tx_write_address;
+	uint8_t *tx_write_address;
 	uint8_t *rx_read_address;
 	uint n_checks;
 	uint is_connected;
@@ -47,9 +47,9 @@ static struct uart_device
 
 static void dma_handler();
 
-static void set_tx_dma(volatile uint8_t *l_tx_write_address, struct uart_device *uart);
+static void set_tx_dma(uint8_t *l_tx_write_address, struct uart_device *uart);
 
-uint setup_usart_tx_dma(uart_inst_t *uart, volatile uint8_t *tx_address, uint buffer_size)
+uint setup_usart_tx_dma(uart_inst_t *uart, uint8_t *tx_address, uint buffer_size)
 {
 	uint dma_chan = dma_claim_unused_channel(true);
 	// Tell the DMA to raise IRQ line 1 when the channel finishes a block
@@ -73,7 +73,7 @@ uint setup_usart_tx_dma(uart_inst_t *uart, volatile uint8_t *tx_address, uint bu
 	return dma_chan;
 }
 
-uint setup_usart_rx_dma(uart_inst_t *uart, volatile void *rx_address, irq_handler_t handler, uint buffer_size)
+uint setup_usart_rx_dma(uart_inst_t *uart, void *rx_address, irq_handler_t handler, uint buffer_size)
 {
 	uint dma_chan = dma_claim_unused_channel(true);
 	// Tell the DMA to raise IRQ line 1 when the channel finishes a block
@@ -134,11 +134,11 @@ void cdc_uart_init_(int itf, uart_inst_t *const uart_, int uart_rx_pin, int uart
 	uart->tx_dma_channel = setup_usart_tx_dma(uart->inst, &uart->tx_buf[0], UART_BUFFER_SIZE);
 	uart->rx_dma_channel = setup_usart_rx_dma(uart->inst, &uart->rx_buf[0], dma_handler, UART_BUFFER_SIZE);
 	uart->tx_write_address = &uart->tx_buf[0];
-	uart->rx_read_address = (uint8_t *)&uart->rx_buf[0];
+	uart->rx_read_address = &uart->rx_buf[0];
 	uart->n_checks = 0;
 }
 
-void set_tx_dma(volatile uint8_t *l_tx_write_address, struct uart_device *uart)
+void set_tx_dma(uint8_t *l_tx_write_address, struct uart_device *uart)
 {
 	uint8_t *ra = (uint8_t *)(dma_channel_hw_addr(uart->tx_dma_channel)->read_addr);
 	if (ra >= (&uart->tx_buf[0] + UART_BUFFER_SIZE))
@@ -157,7 +157,7 @@ void set_tx_dma(volatile uint8_t *l_tx_write_address, struct uart_device *uart)
 // shared between rx_dma_channel and tx_dma_channel
 static void dma_handler()
 {
-	volatile uint32_t ints = dma_hw->ints1;
+	uint32_t ints = dma_hw->ints1;
 	struct uart_device *uart;
 
 	for (size_t i = 0; i < CDC_UART_INTF_COUNT; i++)
@@ -171,7 +171,7 @@ static void dma_handler()
 		if (dma_channel_get_irq1_status(uart->tx_dma_channel))
 		{
 			// cdc_uart_task can modify uart->tx_write_address. cache it locally
-			volatile uint8_t *l_tx_write_address = uart->tx_write_address;
+			uint8_t *l_tx_write_address = uart->tx_write_address;
             set_tx_dma(l_tx_write_address, uart);
         }
 	}
@@ -190,7 +190,7 @@ void cdc_uart_task(void)
 		{
 			uart->is_connected = 1;
 			int written = 0;
-			volatile uint8_t *wa = (uint8_t*)(dma_channel_hw_addr(uart->rx_dma_channel)->write_addr);
+			uint8_t *wa = (uint8_t*)(dma_channel_hw_addr(uart->rx_dma_channel)->write_addr);
 			if (wa == &uart->rx_buf[UART_BUFFER_SIZE])
 			{
 				wa = &uart->rx_buf[0];
@@ -225,7 +225,7 @@ void cdc_uart_task(void)
 				size_t tx_len;
 				tx_len = tud_cdc_n_read(i, (void*)uart->tx_write_address, watermark);
 				//be careful about modifying tx_write_address as it is used in the IRQ handler
-				volatile uint8_t *l_tx_write_address = uart->tx_write_address + tx_len;
+				uint8_t *l_tx_write_address = uart->tx_write_address + tx_len;
 				if (l_tx_write_address >= &uart->tx_buf[UART_BUFFER_SIZE])
 					uart->tx_write_address = l_tx_write_address - UART_BUFFER_SIZE;
 				else
