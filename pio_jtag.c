@@ -66,7 +66,6 @@ static int tx_dma_chan;
 static int rx_dma_chan;
 static dma_channel_config tx_c;
 static dma_channel_config rx_c;
-#endif
 
 void dma_init()
 {
@@ -103,6 +102,7 @@ void dma_init()
         false             // Don't start yet
     );
 }
+#endif
 
 
 void __time_critical_func(pio_jtag_write)(const pio_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len)
@@ -130,57 +130,55 @@ void __time_critical_func(pio_jtag_write)(const pio_jtag_inst_t *jtag, const uin
 
     //kick off the process by sending the len to the tx pipeline
     *(io_rw_32*)txfifo = len-1;
-#if JTAG_DMA
-    if (byte_length > 4)
-    {
-        channel_config_set_read_increment(&tx_c, no_bsrc ? false : true);
-        channel_config_set_write_increment(&rx_c, bdst ? true : false);
-        dma_channel_set_config(rx_dma_chan, &rx_c, false);
-        dma_channel_set_config(tx_dma_chan, &tx_c, false);
-        uint8_t *to_buffer = have_bdst ? bdst : &x;
-        const uint8_t *from_buffer = no_bsrc ? &tdi_word : bsrc;
-        dma_channel_transfer_to_buffer_now(rx_dma_chan, (void*) to_buffer, rx_remain);
-        dma_channel_transfer_from_buffer_now(tx_dma_chan, (void*) from_buffer, tx_remain);
-        while (dma_channel_is_busy(rx_dma_chan))
-        {
-            jtag_task();
-            tight_loop_contents();
-        }
-        // stop the compiler hoisting a non volatile buffer access above the DMA completion.
-        __compiler_memory_barrier();
-    }
-    else
-#endif
-    {
-        while (tx_remain || rx_remain)
-        {
-            if (tx_remain && !pio_sm_is_tx_fifo_full(jtag->pio, jtag->sm))
-            {
-                if (no_bsrc)
-                {
-                    *txfifo = tdi_word;
-                }
-                else
-                {
-                    *txfifo = *bsrc++;
-                }
 
-                --tx_remain;
-            }
-            if (rx_remain && !pio_sm_is_rx_fifo_empty(jtag->pio, jtag->sm))
+#if JTAG_DMA
+    channel_config_set_read_increment(&tx_c, no_bsrc ? false : true);
+    channel_config_set_write_increment(&rx_c, bdst ? true : false);
+    dma_channel_set_config(rx_dma_chan, &rx_c, false);
+    dma_channel_set_config(tx_dma_chan, &tx_c, false);
+    uint8_t *to_buffer = have_bdst ? bdst : &x;
+    const uint8_t *from_buffer = no_bsrc ? &tdi_word : bsrc;
+    dma_channel_transfer_to_buffer_now(rx_dma_chan, (void*) to_buffer, rx_remain);
+    dma_channel_transfer_from_buffer_now(tx_dma_chan, (void*) from_buffer, tx_remain);
+    while (dma_channel_is_busy(rx_dma_chan))
+    {
+        jtag_task();
+        tight_loop_contents();
+    }
+    // stop the compiler hoisting a non volatile buffer access above the DMA completion.
+    __compiler_memory_barrier();
+#else
+    while (tx_remain || rx_remain)
+    {
+        if (tx_remain && !pio_sm_is_tx_fifo_full(jtag->pio, jtag->sm))
+        {
+            if (no_bsrc)
             {
-                if (have_bdst)
-                {
-                    *bdst++ = *rxfifo;
-                }
-                else
-                {
-                    x = *rxfifo;
-                }
-                --rx_remain;
+                *txfifo = tdi_word;
             }
+            else
+            {
+                *txfifo = *bsrc++;
+            }
+
+            --tx_remain;
+        }
+        if (rx_remain && !pio_sm_is_rx_fifo_empty(jtag->pio, jtag->sm))
+        {
+            if (have_bdst)
+            {
+                *bdst++ = *rxfifo;
+            }
+            else
+            {
+                x = *rxfifo;
+            }
+
+            --rx_remain;
         }
     }
+#endif
+
     if (have_bdst)
     {
         last_tdo = !!(*rx_last_byte_p & 1);
