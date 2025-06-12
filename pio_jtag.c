@@ -33,32 +33,6 @@
 
 static bool last_tdo = false;
 
-#if 0
-static bool pins_source = false; //false: PIO, true: GPIO
-
-static void switch_pins_source(const pio_jtag_inst_t *jtag, bool gpio)
-{
-    if (pins_source != gpio)
-    {
-        if (gpio)
-        {
-            gpio_put(jtag->pin_tdi, gpio_get(jtag->pin_tdi));
-            gpio_set_function(jtag->pin_tdi, GPIO_FUNC_SIO);
-            gpio_put(jtag->pin_tck, gpio_get(jtag->pin_tck));
-            gpio_set_function(jtag->pin_tck, GPIO_FUNC_SIO);
-            gpio_set_dir_out_masked((1 << jtag->pin_tdi) | (1 << jtag->pin_tck));
-        }
-        else
-        {
-            gpio_set_function(jtag->pin_tdi, GPIO_FUNC_PIO0);
-            gpio_set_function(jtag->pin_tck, GPIO_FUNC_PIO0);
-        }
-        pins_source = gpio;
-    }
-}
-#endif
-
-
 
 #if JTAG_DMA
 static int tx_dma_chan;
