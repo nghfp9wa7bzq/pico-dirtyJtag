@@ -41,10 +41,9 @@
 #define TX_BUFFER_SIZE (4096) //needs to be a power of 2
 #define RX_BUFFER_SIZE (4096)
 
-#if (CDC_UART_INTF_COUNT > 0)
+void cdc_uart_init(void);
 /* index is the CDC interface number */
-void cdc_uart_init( int index, uart_inst_t *const uart, int uart_rx_pin, int uart_tx_pin );
+void cdc_uart_init_(int index, uart_inst_t *const uart, int uart_rx_pin, int uart_tx_pin);
 void cdc_uart_task(void);
-#endif
 
 #endif

@@ -102,10 +102,8 @@ void jtag_main_task()
 #endif
             }
             led_rx( 0 );
-        } else {
-#if ( CDC_UART_INTF_COUNT > 0 )           
+        } else {         
             cdc_uart_task();
-#endif
         }
     }
 }
@@ -162,19 +160,13 @@ int main()
     usb_serial_init();
     tusb_init();
     jtag_init(&jtag);
-
-    led_init( LED_INVERTED, PIN_LED_TX, PIN_LED_RX, PIN_LED_ERROR );
-#if ( CDC_UART_INTF_COUNT > 0 )
-    cdc_uart_init( 0, PIN_UART0, PIN_UART0_RX, PIN_UART0_TX );
-#endif
-#if ( CDC_UART_INTF_COUNT > 1)
-    cdc_uart_init( 1, PIN_UART1, PIN_UART1_RX, PIN_UART1_TX );
-#endif
-
+    led_init(LED_INVERTED, PIN_LED_TX, PIN_LED_RX, PIN_LED_ERROR);
+    cdc_uart_init();
 
 #ifdef MULTICORE
     multicore_launch_core1(core1_entry);
 #endif
+
     while (1) {
         jtag_main_task();
         fetch_command();//for unicore implementation

@@ -23,9 +23,6 @@
  * along with this program.	 If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "dirtyJtagConfig.h"
-
-#if ( CDC_UART_INTF_COUNT > 0 )
 
 #include <pico/stdlib.h>
 #include <hardware/dma.h>
@@ -33,6 +30,7 @@
 #include "led.h"
 #include "tusb.h"
 #include "cdc_uart.h"
+#include "dirtyJtagConfig.h"
 
 static struct uart_device
 {
@@ -116,7 +114,21 @@ uint setup_usart_rx_dma(uart_inst_t *uart, volatile void *rx_address, irq_handle
 	return dma_chan;
 }
 
-void cdc_uart_init( int index, uart_inst_t *const uart_, int uart_rx_pin, int uart_tx_pin )  {
+// Initialize 0, 1 or 2 UART interfaces
+// based on configuration.
+void cdc_uart_init(void)
+{
+    if (CDC_UART_INTF_COUNT > 0)
+    {
+        cdc_uart_init_(0, PIN_UART0, PIN_UART0_RX, PIN_UART0_TX);
+    }
+    if (CDC_UART_INTF_COUNT > 1)
+    {
+        cdc_uart_init_(1, PIN_UART1, PIN_UART1_RX, PIN_UART1_TX);
+    }
+}
+
+void cdc_uart_init_(int index, uart_inst_t *const uart_, int uart_rx_pin, int uart_tx_pin) {
 	uint uart_index;
 	uart_index = uart_get_index(uart_);
     struct uart_device *uart;
@@ -136,7 +148,7 @@ void cdc_uart_init( int index, uart_inst_t *const uart_, int uart_rx_pin, int ua
 	uart->rx_dma_channel = setup_usart_rx_dma(uart->inst, &uart->rx_buf[0], dma_handler, RX_BUFFER_SIZE);
 	uart->tx_write_address = &uart->tx_buf[0];
 	uart->rx_read_address = (uint8_t *)&uart->rx_buf[0];
-	uart->n_checks = 0; 
+	uart->n_checks = 0;
 }
 
 void set_tx_dma(volatile uint8_t *l_tx_write_address, struct uart_device *uart)
@@ -283,5 +295,3 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)
 	// else
 	// 	cdc_stopped = false;
 }
-
-#endif // CDC_UART_INTF_COUNT
