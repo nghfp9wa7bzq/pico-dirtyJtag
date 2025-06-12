@@ -31,19 +31,8 @@
 #ifndef CDC_UART_H
 #define CDC_UART_H
 
-#include "dirtyJtagConfig.h"
-
-#define USBUSART_BAUDRATE 115200
-
-/* For speed this is set to the USB transfer size */
-#define FULL_SWO_PACKET (64)
-
-#define TX_BUFFER_SIZE (4096) //needs to be a power of 2
-#define RX_BUFFER_SIZE (4096)
-
 void cdc_uart_init(void);
-/* index is the CDC interface number */
-void cdc_uart_init_(int index, uart_inst_t *const uart, int uart_rx_pin, int uart_tx_pin);
+void cdc_uart_init_(int itf, uart_inst_t *const uart, int uart_rx_pin, int uart_tx_pin);
 void cdc_uart_task(void);
 
 #endif

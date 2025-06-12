@@ -60,6 +60,15 @@
 // another, CFG_TUD_VENDOR_TX_BUFSIZE sized internal FIFO.
 #define VENDOR_BUFFER_SIZE   64
 
+// USB -> UART
+// Same as above.
+#define UART_BUFFER_SIZE     4096
+
+// For speed this is set to the USB transfer size.
+#define UART_PACKET_SIZE     64
+
+#define UART_BAUDRATE        115200
+
 
 
 #define BOARD_PICO           0
