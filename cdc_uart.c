@@ -192,14 +192,8 @@ static void dma_handler()
 	dma_hw->ints1 = ints;
 }
 
-
-
-bool cdc_stopped = false;
 void cdc_uart_task(void)
 {
-	if (cdc_stopped)
-	  	return;
-
 	struct uart_device *uart;
 
 	for (size_t i = 0; i < CDC_UART_INTF_COUNT; i++)
@@ -281,17 +275,4 @@ void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const* line_coding)
 		}
 		
 	}
-}
-
-void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)
-{
-	//if (itf != UART_PORT_ITF)
-		return;
-	/* CDC drivers use linestate as a bodge to activate/deactivate the interface.
-	* Resume our UART polling on activate, stop on deactivate */
-    // DTR RTS not so
-	// if (!dtr && !rts)
-	// 	cdc_stopped = true;
-	// else
-	// 	cdc_stopped = false;
 }
