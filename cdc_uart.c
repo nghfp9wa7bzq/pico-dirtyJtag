@@ -31,6 +31,7 @@
 #include "tusb.h"
 #include "cdc_uart.h"
 #include "dirtyJtagConfig.h"
+#include "dma.h"
 
 static struct uart_device
 {
@@ -49,57 +50,62 @@ static void dma_handler();
 
 static void set_tx_dma(uint8_t *l_tx_write_address, struct uart_device *uart);
 
-uint setup_usart_tx_dma(uart_inst_t *uart, uint8_t *tx_address, uint buffer_size)
+uint setup_usart_tx_dma(uart_inst_t *uart, void *tx_address, uint buffer_size)
 {
-	uint dma_chan = dma_claim_unused_channel(true);
-	// Tell the DMA to raise IRQ line 1 when the channel finishes a block
-	dma_channel_set_irq1_enabled(dma_chan, true);
-	// enable DMA TX
-	hw_write_masked(&uart_get_hw(uart)->dmacr, 1 << UART_UARTDMACR_TXDMAE_LSB, UART_UARTDMACR_TXDMAE_BITS);
+    dma_channel_config c;
 
-	dma_channel_config c = dma_channel_get_default_config(dma_chan);
-	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
-	channel_config_set_read_increment(&c, true);
-	channel_config_set_write_increment(&c, false);
-	channel_config_set_dreq(&c, uart_get_dreq(uart, true));
-	dma_channel_configure(
-		dma_chan,
-		&c,
-		&uart_get_hw(uart)->dr, // Write Ad
-		tx_address,             // Read Address
-		0,                      // transfer count
-		false                   // start
-	);
-	return dma_chan;
+    uint dma_chan = claim_dma_ch(
+        &c,                             // Channel config
+        DMA_SIZE_8,                     // Transfer data size
+        true,                           // Read increment (default true)
+        false,                          // Write increment (default false)
+        uart_get_dreq(uart, true),      // DMA Request
+        tx_address,                     // Read address
+        &uart_get_hw(uart)->dr,         // Write address
+        0,                              // Transfer count
+        false                           // Trigger (start transfer immediately)
+    );
+
+    // Tell the DMA to raise IRQ line 1 when the channel finishes a block
+    dma_channel_set_irq1_enabled(dma_chan, true);
+    // enable DMA TX
+    hw_write_masked(&uart_get_hw(uart)->dmacr, 1 << UART_UARTDMACR_TXDMAE_LSB, UART_UARTDMACR_TXDMAE_BITS);
+
+    return dma_chan;
 }
 
 uint setup_usart_rx_dma(uart_inst_t *uart, void *rx_address, irq_handler_t handler, uint buffer_size)
 {
-	uint dma_chan = dma_claim_unused_channel(true);
-	// Tell the DMA to raise IRQ line 1 when the channel finishes a block
-	dma_channel_set_irq1_enabled(dma_chan, true);
+    dma_channel_config c;
 
-	// Configure the processor to run dma_handler() when DMA IRQ 1 is asserted
-	irq_add_shared_handler(DMA_IRQ_1, handler, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
-	irq_set_enabled(DMA_IRQ_1, true);
-	// enable DMA RX
-	hw_write_masked(&uart_get_hw(uart)->dmacr, 1 << UART_UARTDMACR_RXDMAE_LSB, UART_UARTDMACR_RXDMAE_BITS);
+    uint dma_chan = claim_dma_ch(
+        &c,                             // Channel config
+        DMA_SIZE_8,                     // Transfer data size
+        false,                          // Read increment (default true)
+        true,                           // Write increment (default false)
+        uart_get_dreq(uart, false),     // DMA Request
+        &uart_get_hw(uart)->dr,         // Read address
+        rx_address,                     // Write address
+        buffer_size,                    // Transfer count
+        false                           // Trigger (start transfer immediately)
+    );
 
-	dma_channel_config c = dma_channel_get_default_config(dma_chan);
-	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
-	channel_config_set_read_increment(&c, false);
-	channel_config_set_write_increment(&c, true);
-	channel_config_set_dreq(&c, uart_get_dreq(uart, false));
-	hw_clear_bits(&uart_get_hw(uart)->rsr, UART_UARTRSR_BITS); // clear
-	dma_channel_configure(
-		dma_chan,
-		&c,
-		rx_address,				// Write Address
-		&uart_get_hw(uart)->dr, // Read Address
-		buffer_size,			// transfer count
-		true					// start
-	);
-	return dma_chan;
+    // Tell the DMA to raise IRQ line 1 when the channel finishes a block
+    dma_channel_set_irq1_enabled(dma_chan, true);
+
+    // Configure the processor to run dma_handler() when DMA IRQ 1 is asserted
+    irq_add_shared_handler(DMA_IRQ_1, handler, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+    irq_set_enabled(DMA_IRQ_1, true);
+    // enable DMA RX
+    hw_write_masked(&uart_get_hw(uart)->dmacr, 1 << UART_UARTDMACR_RXDMAE_LSB, UART_UARTDMACR_RXDMAE_BITS);
+
+    // Clear UART receive status register.
+    hw_clear_bits(&uart_get_hw(uart)->rsr, UART_UARTRSR_BITS);
+    
+    // Start transfer.
+    dma_channel_start(dma_chan);
+
+    return dma_chan;
 }
 
 // Initialize 0, 1 or 2 UART interfaces

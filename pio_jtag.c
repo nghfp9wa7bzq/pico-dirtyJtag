@@ -29,14 +29,15 @@
 #include "dirtyJtagConfig.h"
 #include "pio_jtag.h"
 #include "jtag.pio.h"
+#include "dma.h"
 
 
 static bool last_tdo = false;
 
 
 #if JTAG_DMA
-static int tx_dma_chan;
-static int rx_dma_chan;
+static uint tx_dma_chan;
+static uint rx_dma_chan;
 static dma_channel_config tx_c;
 static dma_channel_config rx_c;
 
@@ -44,39 +45,33 @@ void dma_init()
 {
     // Configure a channel to write a buffer to PIO0
     // SM0's TX FIFO, paced by the data request signal from that peripheral.
-    tx_dma_chan = dma_claim_unused_channel(true);
-    tx_c = dma_channel_get_default_config(tx_dma_chan);
-    channel_config_set_transfer_data_size(&tx_c, DMA_SIZE_8);
-    channel_config_set_read_increment(&tx_c, true);
-    channel_config_set_dreq(&tx_c, DREQ_PIO0_TX0);
-    dma_channel_configure(
-        tx_dma_chan,
-        &tx_c,
-        pio0_hw->txf,     // Write address (only need to set this once)
-        NULL,             // Don't provide a read address yet
-        0,                // Don't provide the count yet
-        false             // Don't start yet
+    tx_dma_chan = claim_dma_ch(
+        &tx_c,              // Channel config
+        DMA_SIZE_8,         // Transfer data size
+        true,               // Read increment (default true)
+        false,              // Write increment (default false)
+        DREQ_PIO0_TX0,      // DMA Request
+        NULL,               // Read address
+        pio0_hw->txf,       // Write address
+        0,                  // Transfer count
+        false               // Trigger (start transfer immediately)
     );
 
     // Configure a channel to read a buffer from PIO0
     // SM0's RX FIFO, paced by the data request signal from that peripheral.
-    rx_dma_chan = dma_claim_unused_channel(true);
-    rx_c = dma_channel_get_default_config(rx_dma_chan);
-    channel_config_set_transfer_data_size(&rx_c, DMA_SIZE_8);
-    channel_config_set_write_increment(&rx_c, false);
-    channel_config_set_read_increment(&rx_c, false);
-    channel_config_set_dreq(&rx_c, DREQ_PIO0_RX0);
-    dma_channel_configure(
-        rx_dma_chan,
-        &rx_c,
-        NULL,             // Dont provide a write address yet
-        pio0_hw->rxf,     // Read address (only need to set this once)
-        0,                // Don't provide the count yet
-        false             // Don't start yet
+    rx_dma_chan = claim_dma_ch(
+        &rx_c,              // Channel config
+        DMA_SIZE_8,         // Transfer data size
+        false,              // Read increment (default true)
+        false,              // Write increment (default false)
+        DREQ_PIO0_RX0,      // DMA Request
+        pio0_hw->rxf,       // Read address
+        NULL,               // Write address
+        0,                  // Transfer count
+        false               // Trigger (start transfer immediately)
     );
 }
 #endif
-
 
 void __time_critical_func(pio_jtag_write)(const pio_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len)
 {
