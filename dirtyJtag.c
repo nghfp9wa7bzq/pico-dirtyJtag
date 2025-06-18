@@ -39,19 +39,52 @@
 #include "tusb.h"
 #include "cmd.h"
 #include "get_serial.h"
-
 #include "dirtyJtagConfig.h"
 
-#define MULTICORE
 
 pio_jtag_inst_t jtag = {
-            .pio = pio0,
-            .sm = 0
+    .pio = pio0,
+    .sm = 0
 };
 
-typedef uint8_t cmd_buffer[64];
+typedef uint8_t cmd_buffer[VENDOR_BUFFER_SIZE];
+static cmd_buffer rx_buf;
+static cmd_buffer tx_buf;
+static uint32_t bytes_available = 0;
+
+// Single CPU core case
+#if !MULTICORE
+void jtag_main_task()
+{
+    //If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
+    //after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one
+    //The DJTAG protocol does not tolerate this.
+    tud_task();// tinyusb device task
+
+    // Get the number of available bytes and only transfer that many,
+    // instead of the whole buffer.
+    bytes_available = 0;
+    if (bytes_available = tud_vendor_available())
+    {
+        led_rx(1);
+        uint count = tud_vendor_read(rx_buf, bytes_available);
+        if (count != 0)
+        {
+            cmd_handle(&jtag, rx_buf, count, tx_buf);
+        }
+        led_rx(0);
+    } else {
+        // Note that we are prioritizing the JTAG interface.
+        cdc_uart_task();
+    }
+}
+
+// MULTICORE case
+// This uses an array of buffers and the multicore fifos to delegate
+// command handling to the second CPU core.
+#else
 static uint wr_buffer_number = 0;
-static uint rd_buffer_number = 0; 
+static uint rd_buffer_number = 0;
 typedef struct buffer_info
 {
     volatile uint8_t count;
@@ -63,61 +96,58 @@ typedef struct buffer_info
 
 buffer_info buffer_infos[n_buffers];
 
-static cmd_buffer tx_buf;
+// After receiving commands, go to the next buffer.
+void switch_buffer(uint *bpt)
+{
+    *bpt += 1;
+    if (*bpt == n_buffers)
+    {
+        *bpt = 0;
+    }
+}
 
 void jtag_main_task()
 {
-#ifdef MULTICORE
     if (multicore_fifo_rvalid())
     {
         //some command processing has been done
         uint rx_num = multicore_fifo_pop_blocking();
         buffer_info* bi = &buffer_infos[rx_num];
         bi->busy = false;
-
     }
-#endif
-    if ((buffer_infos[wr_buffer_number].busy == false)) 
+
+    uint bnum = wr_buffer_number;
+    if ((buffer_infos[bnum].busy == false))
     {
         //If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
         //after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one
-        //The DJTAG protocol does not tolerate this. 
+        //The DJTAG protocol does not tolerate this.
         tud_task();// tinyusb device task
-        if (tud_vendor_available())
+
+        // Get the number of available bytes and only transfer that many,
+        // instead of the whole buffer.
+        bytes_available = 0;
+        if (bytes_available = tud_vendor_available())
         {
-            led_rx( 1 );
-            uint bnum = wr_buffer_number;
-            uint count = tud_vendor_read(buffer_infos[wr_buffer_number].buffer, 64);
+            led_rx(1);
+            uint count = tud_vendor_read(buffer_infos[bnum].buffer, bytes_available);
             if (count != 0)
             {
                 buffer_infos[bnum].count = count;
                 buffer_infos[bnum].busy = true;
-                wr_buffer_number = wr_buffer_number + 1; //switch buffer
-                if (wr_buffer_number == n_buffers)
-                {
-                    wr_buffer_number = 0; 
-                }
-#ifdef MULTICORE
+                switch_buffer(&wr_buffer_number);
+
                 multicore_fifo_push_blocking(bnum);
-#endif
             }
-            led_rx( 0 );
-        } else {         
+            led_rx(0);
+        } else {
+            // Note that we are prioritizing the JTAG interface.
             cdc_uart_task();
         }
     }
 }
 
-void jtag_task()
-{
-#ifndef MULTICORE
-    jtag_main_task();
-#endif
-}
-
-#ifdef MULTICORE
 void core1_entry() {
-
     while (1)
     {
         uint rx_num = multicore_fifo_pop_blocking();
@@ -126,25 +156,8 @@ void core1_entry() {
         cmd_handle(&jtag, bi->buffer, bi->count, tx_buf);
         multicore_fifo_push_blocking(rx_num);
     }
- 
 }
 #endif
-
-void fetch_command()
-{
-#ifndef MULTICORE
-    if (buffer_infos[rd_buffer_number].busy)
-    {
-        cmd_handle(&jtag, buffer_infos[rd_buffer_number].buffer, buffer_infos[rd_buffer_number].count, tx_buf);
-        buffer_infos[rd_buffer_number].busy = false;
-        rd_buffer_number++; //switch buffer
-        if (rd_buffer_number == n_buffers)
-        {
-            rd_buffer_number = 0; 
-        }
-    }
-#endif
-}
 
 //this is to work around the fact that tinyUSB does not handle setup request automatically
 //Hence this boiler plate code
@@ -163,12 +176,11 @@ int main()
     led_init(LED_INVERTED, PIN_LED_TX, PIN_LED_RX, PIN_LED_ERROR);
     cdc_uart_init();
 
-#ifdef MULTICORE
+#if MULTICORE
     multicore_launch_core1(core1_entry);
 #endif
 
     while (1) {
         jtag_main_task();
-        fetch_command();//for unicore implementation
     }
 }

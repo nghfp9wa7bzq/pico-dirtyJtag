@@ -44,6 +44,23 @@
 // Default is 1 - use DMA.
 #define JTAG_DMA 1
 
+// Enable second CPU core (core1)
+// and divide workload between cores.
+// Default is 1 - use both cores.
+#define MULTICORE 1
+
+// USB -> JTAG
+// TinyUSB receives data from host.
+// Puts it into its internal FIFO.
+// FIFO size is set with CFG_TUD_VENDOR_RX_BUFSIZE.
+// We need a buffer to which we can copy the data.
+// (rx_buf in dirtyJtag.c)
+// Its size should be at least 64 bytes.
+// Same thing in reverse, but using tx_buf and
+// another, CFG_TUD_VENDOR_TX_BUFSIZE sized internal FIFO.
+#define VENDOR_BUFFER_SIZE   64
+
+
 
 #define BOARD_PICO           0
 #define BOARD_ADAFRUIT_ITSY  1
@@ -72,7 +89,7 @@
 
 #if ( BOARD_TYPE == BOARD_PICO )
 
-#define PIN_TDI 16 
+#define PIN_TDI 16
 #define PIN_TDO 17
 #define PIN_TCK 18
 #define PIN_TMS 19
@@ -94,7 +111,7 @@
 
 #elif ( BOARD_TYPE == BOARD_ADAFRUIT_ITSY )
 
-#define PIN_TDI 28 
+#define PIN_TDI 28
 #define PIN_TDO 27
 #define PIN_TCK 26
 #define PIN_TMS 29
@@ -114,7 +131,7 @@
 
 #elif ( BOARD_TYPE == BOARD_SPOKE_RP2040 )
 
-#define PIN_TDI 23 
+#define PIN_TDI 23
 #define PIN_TDO 20
 #define PIN_TCK 22
 #define PIN_TMS 21
@@ -130,7 +147,6 @@
 #define PIN_UART0       uart0
 #define PIN_UART0_TX    28
 #define PIN_UART0_RX    29
-
 
 #elif ( BOARD_TYPE == BOARD_WERKZEUG )
 
@@ -150,6 +166,7 @@
 #define PIN_UART0       uart0
 #define PIN_UART0_TX    28
 #define PIN_UART0_RX    29
+
 #elif ( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
 
 // in rp2040 daughterboard UART pins are connected to FPGA pins
@@ -157,7 +174,7 @@
 // of damage so these pins are not going to be setup
 #define CDC_UART_INTF_COUNT 0
 
-#define PIN_TDI  16 
+#define PIN_TDI  16
 #define PIN_TDO  17
 #define PIN_TCK  18
 #define PIN_TMS  19
@@ -197,7 +214,6 @@
 #define PIN_UART1       uart1
 #define PIN_UART1_TX    8
 #define PIN_UART1_RX    9
-
 
 #endif // BOARD_TYPE
 

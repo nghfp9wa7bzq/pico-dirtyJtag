@@ -30,7 +30,6 @@
 #include "pio_jtag.h"
 #include "jtag.pio.h"
 
-void jtag_task();//to process USB OUT packets while waiting for DMA to finish
 
 static bool last_tdo = false;
 
@@ -142,7 +141,6 @@ void __time_critical_func(pio_jtag_write)(const pio_jtag_inst_t *jtag, const uin
     dma_channel_transfer_from_buffer_now(tx_dma_chan, (void*) from_buffer, tx_remain);
     while (dma_channel_is_busy(rx_dma_chan))
     {
-        jtag_task();
         tight_loop_contents();
     }
     // stop the compiler hoisting a non volatile buffer access above the DMA completion.
