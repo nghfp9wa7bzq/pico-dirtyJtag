@@ -67,9 +67,6 @@ void jtag_main_task()
             cmd_handle(&jtag, rx_buf, count, tx_buf);
         }
         led_rx(0);
-    } else {
-        // Note that we are prioritizing the JTAG interface.
-        cdc_uart_task();
     }
 }
 
@@ -129,9 +126,6 @@ void jtag_main_task()
                 multicore_fifo_push_blocking(bnum);
             }
             led_rx(0);
-        } else {
-            // Note that we are prioritizing the JTAG interface.
-            dj_uart_task();
         }
     }
 }
@@ -173,5 +167,6 @@ int main()
 
     while (1) {
         jtag_main_task();
+        dj_uart_task();
     }
 }
