@@ -28,8 +28,8 @@
  *
  */
 
-#ifndef DirtyJtagConfig_h
-#define DirtyJtagConfig_h
+#ifndef DIRTYJTAG_H
+#define DIRTYJTAG_H
 
 // Set this to 1 if you definitely don't want to use RST and TRST
 // pins for the JTAG interface.
@@ -58,32 +58,30 @@
 // Its size should be at least 64 bytes.
 // Same thing in reverse, but using tx_buf and
 // another, CFG_TUD_VENDOR_TX_BUFSIZE sized internal FIFO.
-#define VENDOR_BUFFER_SIZE   64
+#define VENDOR_BUFFER_SIZE 64
 
 // USB -> UART
 // Same as above.
-#define UART_BUFFER_SIZE     4096
+#define UART_BUFFER_SIZE 4096
 
 // For speed this is set to the USB transfer size.
-#define UART_PACKET_SIZE     64
+#define UART_PACKET_SIZE 64
 
-#define UART_BAUDRATE        115200
+#define UART_BAUDRATE 115200
 
+#define BOARD_PICO 0
+#define BOARD_ADAFRUIT_ITSY 1
+#define BOARD_SPOKE_RP2040 2
+#define BOARD_QMTECH_RP2040 3
+#define BOARD_WERKZEUG 4
+#define BOARD_RP2040_ZERO 5
 
-
-#define BOARD_PICO           0
-#define BOARD_ADAFRUIT_ITSY  1
-#define BOARD_SPOKE_RP2040   2
-#define BOARD_QMTECH_RP2040_DAUGHTERBOARD 3
-#define BOARD_WERKZEUG       4
-#define BOARD_RP2040_ZERO    5
-
-// Select the board type from the above
+// Select the board type from the above.
 #define BOARD_TYPE BOARD_PICO
 //#define BOARD_TYPE BOARD_ADAFRUIT_ITSY
 //#define BOARD_TYPE BOARD_SPOKE_RP2040
 //#define BOARD_TYPE BOARD_WERKZEUG
-//#define BOARD_TYPE BOARD_QMTECH_RP2040_DAUGHTERBOARD
+//#define BOARD_TYPE BOARD_QMTECH_RP2040
 //#define BOARD_TYPE BOARD_RP2040_ZERO
 
 // General mapping
@@ -94,9 +92,9 @@
 // RST  GPIO
 // TRST GPIO
 
-// Set CDC_UART_INTF_COUNT to 0 to disable USB-CDC-UART bridge
+// Set CDC_UART_INTF_COUNT to 0 to disable USB-CDC-UART bridge.
 
-#if ( BOARD_TYPE == BOARD_PICO )
+#if (BOARD_TYPE == BOARD_PICO)
 
 #define PIN_TDI 16
 #define PIN_TDO 17
@@ -105,20 +103,20 @@
 #define PIN_RST 20
 #define PIN_TRST 21
 
-#define LED_INVERTED   0
-#define PIN_LED_TX     25
-#define PIN_LED_ERROR  25
-#define PIN_LED_RX     25
+#define LED_INVERTED 0
+#define PIN_LED_TX 25
+#define PIN_LED_ERROR 25
+#define PIN_LED_RX 25
 
 #define CDC_UART_INTF_COUNT 2
 #define PIN_UART0 uart0
-#define PIN_UART0_TX    12
-#define PIN_UART0_RX    13
+#define PIN_UART0_TX 12
+#define PIN_UART0_RX 13
 #define PIN_UART1 uart1
-#define PIN_UART1_TX    4
-#define PIN_UART1_RX    5
+#define PIN_UART1_TX 4
+#define PIN_UART1_RX 5
 
-#elif ( BOARD_TYPE == BOARD_ADAFRUIT_ITSY )
+#elif (BOARD_TYPE == BOARD_ADAFRUIT_ITSY)
 
 #define PIN_TDI 28
 #define PIN_TDO 27
@@ -127,18 +125,18 @@
 #define PIN_RST 24
 #define PIN_TRST 25
 
-// no regular LEDs on the Itsy - it's a neopixel
-#define LED_INVERTED   0
-#define PIN_LED_TX     -1
-#define PIN_LED_ERROR  -1
-#define PIN_LED_RX     -1
+// No regular LEDs on the Itsy - it's a neopixel.
+#define LED_INVERTED 0
+#define PIN_LED_TX -1
+#define PIN_LED_ERROR -1
+#define PIN_LED_RX -1
 
 #define CDC_UART_INTF_COUNT 1
-#define PIN_UART0       uart0
-#define PIN_UART0_TX    0
-#define PIN_UART0_RX    1
+#define PIN_UART0 uart0
+#define PIN_UART0_TX 0
+#define PIN_UART0_RX 1
 
-#elif ( BOARD_TYPE == BOARD_SPOKE_RP2040 )
+#elif (BOARD_TYPE == BOARD_SPOKE_RP2040)
 
 #define PIN_TDI 23
 #define PIN_TDO 20
@@ -147,17 +145,17 @@
 #define PIN_RST 26
 #define PIN_TRST 27
 
-#define LED_INVERTED   1
-#define PIN_LED_TX     16
-#define PIN_LED_ERROR  17
-#define PIN_LED_RX     18
+#define LED_INVERTED 1
+#define PIN_LED_TX 16
+#define PIN_LED_ERROR 17
+#define PIN_LED_RX 18
 
 #define CDC_UART_INTF_COUNT 1
-#define PIN_UART0       uart0
-#define PIN_UART0_TX    28
-#define PIN_UART0_RX    29
+#define PIN_UART0 uart0
+#define PIN_UART0_TX 28
+#define PIN_UART0_RX 29
 
-#elif ( BOARD_TYPE == BOARD_WERKZEUG )
+#elif (BOARD_TYPE == BOARD_WERKZEUG)
 
 #define PIN_TDI 1
 #define PIN_TDO 2
@@ -166,40 +164,40 @@
 #define PIN_RST 4
 #define PIN_TRST 5
 
-#define LED_INVERTED   1
-#define PIN_LED_TX     20
-#define PIN_LED_ERROR  21
-#define PIN_LED_RX     20
+#define LED_INVERTED 1
+#define PIN_LED_TX 20
+#define PIN_LED_ERROR 21
+#define PIN_LED_RX 20
 
 #define CDC_UART_INTF_COUNT 1
-#define PIN_UART0       uart0
-#define PIN_UART0_TX    28
-#define PIN_UART0_RX    29
+#define PIN_UART0 uart0
+#define PIN_UART0_TX 28
+#define PIN_UART0_RX 29
 
-#elif ( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
+#elif (BOARD_TYPE == BOARD_QMTECH_RP2040)
 
-// in rp2040 daughterboard UART pins are connected to FPGA pins
-// depending on the FPGA pin configuration there is a possibility
-// of damage so these pins are not going to be setup
-#define CDC_UART_INTF_COUNT 0
-
-#define PIN_TDI  16
-#define PIN_TDO  17
-#define PIN_TCK  18
-#define PIN_TMS  19
-// in rp2040 daughterboard these pins are connected to FPGA pins
-// depending on the FPGA pin configuration there is a possibility
-// of damage so these pins are not going to be setup
+#define PIN_TDI 16
+#define PIN_TDO 17
+#define PIN_TCK 18
+#define PIN_TMS 19
+// In rp2040 daughterboard UART pins are connected to FPGA pins.
+// Depending on the FPGA pin configuration, there is a possibility
+// of damage, so these pins are not going to be setup.
 // #define PIN_RST  X
 // #define PIN_TRST X
 #define NO_RST_PINS 1
 
-#define LED_INVERTED   0
-#define PIN_LED_TX     25
-#define PIN_LED_ERROR  25
-#define PIN_LED_RX     25
+#define LED_INVERTED 0
+#define PIN_LED_TX 25
+#define PIN_LED_ERROR 25
+#define PIN_LED_RX 25
 
-#elif ( BOARD_TYPE == BOARD_RP2040_ZERO )
+// In rp2040 daughterboard UART pins are connected to FPGA pins.
+// Depending on the FPGA pin configuration, there is a possibility
+// of damage, so these pins are not going to be setup.
+#define CDC_UART_INTF_COUNT 0
+
+#elif (BOARD_TYPE == BOARD_RP2040_ZERO)
 
 #define PIN_TDI 0
 #define PIN_TDO 3
@@ -208,22 +206,22 @@
 #define PIN_RST 4
 #define PIN_TRST 5
 
-// the LED is actually a ws2812 neopixel, using a
-// spare pin where we could attach a led, updating the
-// neopixel would probably be slow
-#define LED_INVERTED   1
-#define PIN_LED_TX     29
-#define PIN_LED_ERROR  29
-#define PIN_LED_RX     29
+// The LED is actually a ws2812 neopixel,
+// using a spare pin where we could attach a led,
+// updating the neopixel would probably be slow.
+#define LED_INVERTED 1
+#define PIN_LED_TX 29
+#define PIN_LED_ERROR 29
+#define PIN_LED_RX 29
 
 #define CDC_UART_INTF_COUNT 2
-#define PIN_UART0       uart0
-#define PIN_UART0_TX    12
-#define PIN_UART0_RX    13
-#define PIN_UART1       uart1
-#define PIN_UART1_TX    8
-#define PIN_UART1_RX    9
+#define PIN_UART0 uart0
+#define PIN_UART0_TX 12
+#define PIN_UART0_RX 13
+#define PIN_UART1 uart1
+#define PIN_UART1_TX 8
+#define PIN_UART1_RX 9
 
 #endif // BOARD_TYPE
 
-#endif // DirtyJtagConfig_h
+#endif // DIRTYJTAG_H

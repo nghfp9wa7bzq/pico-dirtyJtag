@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 David Williams (davidthings)
+ * Copyright (c) 2025 nghfp9wa7bzq@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,10 @@
  *
  */
 
-#ifndef LED_H
-#define LED_H
+#ifndef DJ_UART_H
+#define DJ_UART_H
 
-#include <stdbool.h>
+void dj_uart_init(void);
+void dj_uart_task(void);
 
-void led_init( bool inverted, int ledTxPin, int ledRxPin, int errorLedPin );
-
-void led_tx( bool state );
-void led_rx( bool state );
-void led_error( bool state );
-
-#endif
+#endif // DJ_UART_H

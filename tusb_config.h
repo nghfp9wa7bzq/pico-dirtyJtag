@@ -27,25 +27,25 @@
 #ifndef _TUSB_CONFIG_H_
 #define _TUSB_CONFIG_H_
 
-#include "dirtyJtagConfig.h"
+#include "dirtyJtag.h"
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 //--------------------------------------------------------------------
 // COMMON CONFIGURATION
 //--------------------------------------------------------------------
 
-// defined by compiler flags for flexibility
+// Defined by compiler flags for flexibility.
 #ifndef CFG_TUSB_MCU
-  #error CFG_TUSB_MCU must be defined
+#error CFG_TUSB_MCU must be defined
 #endif
 
-#define CFG_TUSB_RHPORT0_MODE     OPT_MODE_DEVICE
+#define CFG_TUSB_RHPORT0_MODE OPT_MODE_DEVICE
 
 #ifndef CFG_TUSB_OS
-#define CFG_TUSB_OS                 OPT_OS_PICO
+#define CFG_TUSB_OS OPT_OS_PICO
 #endif
 
 #ifndef CFG_TUSB_MEM_SECTION
@@ -53,7 +53,7 @@
 #endif
 
 #ifndef CFG_TUSB_MEM_ALIGN
-#define CFG_TUSB_MEM_ALIGN          __attribute__ ((aligned(4)))
+#define CFG_TUSB_MEM_ALIGN __attribute__((aligned(4)))
 #endif
 
 //--------------------------------------------------------------------
@@ -61,23 +61,23 @@
 //--------------------------------------------------------------------
 
 #ifndef CFG_TUD_ENDPOINT0_SIZE
-#define CFG_TUD_ENDPOINT0_SIZE    64
+#define CFG_TUD_ENDPOINT0_SIZE 64
 #endif
 
 //------------- CLASS -------------//
 #define CFG_TUD_CDC CDC_UART_INTF_COUNT
-#define CFG_TUD_VENDOR          1
+#define CFG_TUD_VENDOR 1
 
-#if ( CDC_UART_INTF_COUNT > 0 )
-#define CFG_TUD_CDC_RX_BUFSIZE    256
-#define CFG_TUD_CDC_TX_BUFSIZE    256
+#if (CDC_UART_INTF_COUNT > 0)
+#define CFG_TUD_CDC_RX_BUFSIZE 256
+#define CFG_TUD_CDC_TX_BUFSIZE 256
 #endif
 
 #define CFG_TUD_VENDOR_RX_BUFSIZE 128
 #define CFG_TUD_VENDOR_TX_BUFSIZE 64
 
 #ifdef __cplusplus
- }
+}
 #endif
 
 #endif /* _TUSB_CONFIG_H_ */

@@ -2,7 +2,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2020-2025 Patrick Dussud
- * Copyright (c) 2021 jeanthom 
+ * Copyright (c) 2021 jeanthom
  * Copyright (c) 2023 David Williams (davidthings)
  * Copyright (c) 2023 Chandler Klüser
  * Copyright (c) 2024 DangerousPrototypes
@@ -28,24 +28,20 @@
  *
  */
 
-#include <stdio.h>
-#include "pico/stdlib.h"
-#include "hardware/pio.h"
-#include "pico/multicore.h"
-#include "pio_jtag.h"
-#include "cdc_uart.h"
-#include "led.h"
-#include "bsp/board.h"
-#include "tusb.h"
-#include "cmd.h"
-#include "get_serial.h"
-#include "dirtyJtagConfig.h"
+#include <pico/stdlib.h>
+#include <pico/multicore.h>
+#include <hardware/pio.h>
+#include <bsp/board.h>
+#include <tusb.h>
 
+#include "dirtyJtag.h"
+#include "dj_cmd.h"
+#include "dj_get_serial.h"
+#include "dj_jtag.h"
+#include "dj_led.h"
+#include "dj_uart.h"
 
-pio_jtag_inst_t jtag = {
-    .pio = pio0,
-    .sm = 0
-};
+dj_jtag_inst_t jtag = { .pio = pio0, .sm = 0 };
 
 typedef uint8_t cmd_buffer[VENDOR_BUFFER_SIZE];
 static cmd_buffer rx_buf;
@@ -56,20 +52,18 @@ static uint32_t bytes_available = 0;
 #if !MULTICORE
 void jtag_main_task()
 {
-    //If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
-    //after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one
-    //The DJTAG protocol does not tolerate this.
-    tud_task();// tinyusb device task
+    // If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
+    // after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one.
+    // The DJTAG protocol does not tolerate this.
+    tud_task(); // tinyusb device task
 
     // Get the number of available bytes and only transfer that many,
     // instead of the whole buffer.
     bytes_available = 0;
-    if (bytes_available = tud_vendor_available())
-    {
+    if (bytes_available = tud_vendor_available()) {
         led_rx(1);
         uint count = tud_vendor_read(rx_buf, bytes_available);
-        if (count != 0)
-        {
+        if (count != 0) {
             cmd_handle(&jtag, rx_buf, count, tx_buf);
         }
         led_rx(0);
@@ -85,54 +79,49 @@ void jtag_main_task()
 #else
 static uint wr_buffer_number = 0;
 static uint rd_buffer_number = 0;
-typedef struct buffer_info
-{
+typedef struct buffer_info {
     volatile uint8_t count;
     volatile uint8_t busy;
     cmd_buffer buffer;
 } buffer_info;
 
-#define n_buffers (4)
+#define N_BUFFERS 4
 
-buffer_info buffer_infos[n_buffers];
+buffer_info buffer_infos[N_BUFFERS];
 
 // After receiving commands, go to the next buffer.
 void switch_buffer(uint *bpt)
 {
     *bpt += 1;
-    if (*bpt == n_buffers)
-    {
+    if (*bpt == N_BUFFERS) {
         *bpt = 0;
     }
 }
 
 void jtag_main_task()
 {
-    if (multicore_fifo_rvalid())
-    {
-        //some command processing has been done
+    if (multicore_fifo_rvalid()) {
+        // Some command processing has been done.
         uint rx_num = multicore_fifo_pop_blocking();
-        buffer_info* bi = &buffer_infos[rx_num];
+        buffer_info *bi = &buffer_infos[rx_num];
         bi->busy = false;
     }
 
     uint bnum = wr_buffer_number;
-    if ((buffer_infos[bnum].busy == false))
-    {
-        //If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
-        //after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one
-        //The DJTAG protocol does not tolerate this.
-        tud_task();// tinyusb device task
+    if (buffer_infos[bnum].busy == false) {
+        // If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
+        // after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one.
+        // The DJTAG protocol does not tolerate this.
+        tud_task(); // tinyusb device task
 
         // Get the number of available bytes and only transfer that many,
         // instead of the whole buffer.
         bytes_available = 0;
-        if (bytes_available = tud_vendor_available())
-        {
+        if ((bytes_available = tud_vendor_available())) {
             led_rx(1);
-            uint count = tud_vendor_read(buffer_infos[bnum].buffer, bytes_available);
-            if (count != 0)
-            {
+            uint count =
+                tud_vendor_read(buffer_infos[bnum].buffer, bytes_available);
+            if (count != 0) {
                 buffer_infos[bnum].count = count;
                 buffer_infos[bnum].busy = true;
                 switch_buffer(&wr_buffer_number);
@@ -142,28 +131,29 @@ void jtag_main_task()
             led_rx(0);
         } else {
             // Note that we are prioritizing the JTAG interface.
-            cdc_uart_task();
+            dj_uart_task();
         }
     }
 }
 
-void core1_entry() {
-    while (1)
-    {
+void core1_entry()
+{
+    while (1) {
         uint rx_num = multicore_fifo_pop_blocking();
-        buffer_info* bi = &buffer_infos[rx_num];
-        assert (bi->busy);
+        buffer_info *bi = &buffer_infos[rx_num];
+        assert(bi->busy);
         cmd_handle(&jtag, bi->buffer, bi->count, tx_buf);
         multicore_fifo_push_blocking(rx_num);
     }
 }
 #endif
 
-//this is to work around the fact that tinyUSB does not handle setup request automatically
-//Hence this boiler plate code
-bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const * request)
+// This is to work around the fact that tinyUSB does not handle setup request automatically.
+bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
+                                tusb_control_request_t const *request)
 {
-    if (stage != CONTROL_STAGE_SETUP) return true;
+    if (stage != CONTROL_STAGE_SETUP)
+        return true;
     return false;
 }
 
@@ -172,9 +162,10 @@ int main()
     board_init();
     usb_serial_init();
     tusb_init();
-    jtag_init(&jtag);
-    led_init(LED_INVERTED, PIN_LED_TX, PIN_LED_RX, PIN_LED_ERROR);
-    cdc_uart_init();
+
+    dj_led_init(LED_INVERTED, PIN_LED_TX, PIN_LED_RX, PIN_LED_ERROR);
+    dj_jtag_init(&jtag);
+    dj_uart_init();
 
 #if MULTICORE
     multicore_launch_core1(core1_entry);

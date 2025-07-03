@@ -25,14 +25,14 @@ An additional feature provides a bridge to an external UART.  This is often usef
 
 Other configurations and RP2040 boards are supported.  
 
-In `dirtyJtagConfig.h`, select the board you want to use, or define a new one.
+In `dirtyJtag.h`, select the board you want to use, or define a new one.
 
 ``` C
 #define BOARD_TYPE BOARD_PICO
 //#define BOARD_TYPE BOARD_ADAFRUIT_ITSY
 //#define BOARD_TYPE BOARD_SPOKE_RP2040
 //#define BOARD_TYPE BOARD_WERKZEUG
-//#define BOARD_TYPE BOARD_QMTECH_RP2040_DAUGHTERBOARD
+//#define BOARD_TYPE BOARD_QMTECH_RP2040
 //#define BOARD_TYPE BOARD_RP2040_ZERO
 ```
 
@@ -69,7 +69,7 @@ You can define 1 or 2 bridges by setting `CDC_UART_INTF_COUNT` appropriately
 ``` C
 #define CDC_UART_INTF_COUNT 2
 ```
-See the `dirtyJtagConfig.h` file for these and other configuration options.
+See the `dirtyJtag.h` file for these and other configuration options.
 
 ## Building pico-dirtyJtag
 

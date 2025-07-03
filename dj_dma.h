@@ -20,7 +20,13 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "hardware/dma.h"
+#ifndef DJ_DMA_H
+#define DJ_DMA_H
 
-uint claim_dma_ch(dma_channel_config *cc, uint8_t cc_tds, bool cc_ri, bool cc_wi, uint8_t cc_dreq,
-                  const volatile void *cc_ra, volatile void *cc_wa, uint cc_tc, bool cc_t);
+#include <hardware/dma.h>
+
+uint claim_dma_ch(dma_channel_config *cc, uint8_t cc_tds, bool cc_ri,
+                  bool cc_wi, uint8_t cc_dreq, const volatile void *cc_ra,
+                  volatile void *cc_wa, uint cc_tc, bool cc_t);
+
+#endif // DJ_DMA_H

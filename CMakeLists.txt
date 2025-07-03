@@ -66,12 +66,12 @@ pico_sdk_init()
 add_executable(dirtyJtag
 		dirtyJtag.c
 		usb_descriptors.c
-		pio_jtag.c
-        cdc_uart.c
-		get_serial.c
-		cmd.c
-        led.c
-        dma.c
+		dj_jtag.c
+        dj_uart.c
+		dj_get_serial.c
+		dj_cmd.c
+        dj_led.c
+        dj_dma.c
 )
 
 target_include_directories(dirtyJtag PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
