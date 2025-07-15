@@ -35,9 +35,7 @@ enum CommandIdentifier {
     CMD_XFER = 0x03,
     CMD_SETSIG = 0x04,
     CMD_GETSIG = 0x05,
-    CMD_CLK = 0x06,
-    CMD_SETVOLTAGE = 0x07,
-    CMD_GOTOBOOTLOADER = 0x08
+    CMD_CLK = 0x06
 };
 
 enum CommandModifier {
@@ -118,21 +116,6 @@ static uint32_t cmd_getsig(dj_jtag_inst_t *jtag, uint8_t *buffer);
  */
 static uint32_t cmd_clk(dj_jtag_inst_t *jtag, const uint8_t *commands,
                         bool readout, uint8_t *buffer);
-/**
- * @brief Handle CMD_SETVOLTAGE command
- *
- * CMD_SETVOLTAGE sets the I/O voltage for devices that support this feature.
- *
- * @param commands Command data
- */
-static void cmd_setvoltage(const uint8_t *commands);
-
-/**
- * @brief Handle CMD_GOTOBOOTLOADER command
- *
- * CMD_GOTOBOOTLOADER resets the MCU and enters its bootloader (if installed).
- */
-static void cmd_gotobootloader(void);
 
 void cmd_handle(dj_jtag_inst_t *jtag, uint8_t *rxbuf, uint32_t count,
                 uint8_t *tx_buf)
@@ -177,14 +160,6 @@ void cmd_handle(dj_jtag_inst_t *jtag, uint8_t *rxbuf, uint32_t count,
             commands += 2;
             break;
         }
-        case CMD_SETVOLTAGE:
-            cmd_setvoltage(commands);
-            commands += 1;
-            break;
-
-        case CMD_GOTOBOOTLOADER:
-            cmd_gotobootloader();
-            break;
 
         default:
             return; // Unsupported command, halt
@@ -290,13 +265,4 @@ static uint32_t cmd_clk(dj_jtag_inst_t *jtag, const uint8_t *commands,
         buffer[0] = readout_val;
     }
     return readout ? 1 : 0;
-}
-
-static void cmd_setvoltage(const uint8_t *commands)
-{
-    (void)commands;
-}
-
-static void cmd_gotobootloader(void)
-{
 }
