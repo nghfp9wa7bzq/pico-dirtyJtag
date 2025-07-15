@@ -1,14 +1,23 @@
-# PICO-DIRTYJTAG
-
-This code allows the Pico to become a JTAG cable.  It uses the PIO unit to produce and capture the JTAG signals.  This is a port of the excellent [DirtyJtag project](https://github.com/jeanthom/DirtyJTAG)
-
-An additional feature provides a bridge to an external UART.  This is often useful when the target provides debugging output or a console over a UART.
-
-## Pinout
-
-![Pinout image](doc/detailed_pinout.png)
-
-
+# PICO-DIRTYJTAG  
+  
+This code allows the Pico to become a JTAG cable.  
+It uses the PIO unit to produce and capture the JTAG signals.  
+This is a port of the excellent [DirtyJtag project](https://github.com/jeanthom/DirtyJTAG)  
+  
+An additional feature provides one or two bridge(s) to an external UART.  
+This is often useful when the target provides debugging output or a console over a UART.  
+  
+## Disclaimers  
+This is an experimental branch, that aims to rethink, rewrite, refactor, compress, enhance and so on the code from the original pico-dj project.  
+Rebasing / force pushing may happen without prior notice.  
+I have removed parts of the code that seemed useless.  
+I have made several questionable changes, with 'questionable' meaning something that is of personal preference and maybe it should have just been left alone.  
+This branch receives only limited testing, so feel free to try and report back.  
+  
+## Pinout  
+  
+![Pinout image](doc/detailed_pinout.png)  
+  
 | Pin name | GPIO   | Pico Pin Number |
 |:---------|:-------| -          |
 | TDI      | GPIO16 | 21         |
@@ -17,16 +26,17 @@ An additional feature provides a bridge to an external UART.  This is often usef
 | TMS      | GPIO19 | 25         |
 | RST      | GPIO20 | 26         |
 | TRST     | GPIO21 | 27         |
+| DBG TX   | GPIO04 | 6          |
+| DBG RX   | GPIO05 | 7          |
 | DBG TX   | GPIO12 | 16         |
 | DBG RX   | GPIO13 | 17         |
-
-
-## Configuration
-
+  
+## Configuration  
+  
 Other configurations and RP2040 boards are supported.  
-
-In `dirtyJtag.h`, select the board you want to use, or define a new one.
-
+  
+In `dirtyJtag.h`, select the board you want to use, or define a new one.  
+  
 ``` C
 #define BOARD_TYPE BOARD_PICO
 //#define BOARD_TYPE BOARD_ADAFRUIT_ITSY
@@ -34,10 +44,12 @@ In `dirtyJtag.h`, select the board you want to use, or define a new one.
 //#define BOARD_TYPE BOARD_WERKZEUG
 //#define BOARD_TYPE BOARD_QMTECH_RP2040
 //#define BOARD_TYPE BOARD_RP2040_ZERO
-```
-
-The following values control where the code expects to find functionality.  Of course, not all pins can can be used for all functions.  Take care, especially with the UART pins, to ensure compatibility.
-
+```  
+  
+The following values control where the code expects to find functionality.  
+Of course, not all pins can can be used for all functions.  
+Take care, especially with the UART pins, to ensure compatibility.  
+  
 ``` C
 #define PIN_TDI 16 
 #define PIN_TDO 17
@@ -58,47 +70,57 @@ The following values control where the code expects to find functionality.  Of c
 #define PIN_UART1 uart1
 #define PIN_UART1_TX    4
 #define PIN_UART1_RX    5
-```
-
-If the CDC to UART bridge is not required, or interfers in any way, it can be disabled by setting `CDC_UART_INTF_COUNT` to 0
-
+```  
+  
+If the CDC to UART bridge is not required, or interferes in any way, it can be disabled by setting `CDC_UART_INTF_COUNT` to 0  
+  
 ``` C
 #define CDC_UART_INTF_COUNT  0
-```
-You can define 1 or 2 bridges by setting `CDC_UART_INTF_COUNT` appropriately
+```  
+You can define 1 or 2 bridges by setting `CDC_UART_INTF_COUNT` appropriately  
 ``` C
 #define CDC_UART_INTF_COUNT 2
-```
-See the `dirtyJtag.h` file for these and other configuration options.
-
-## Building pico-dirtyJtag
-
-Follow [the instructions](https://github.com/raspberrypi/pico-sdk) for installing the official Raspberry Pi Pico SDK, then clone this repository and use the following commands:
-
+```  
+See the `dirtyJtag.h` file for these and other configuration options.  
+  
+## Building pico-dirtyJtag  
+  
+Follow [the instructions](https://github.com/raspberrypi/pico-sdk) for installing the official Raspberry Pi Pico SDK, then clone this repository and use the following commands:  
+  
 ```
 mkdir -p build
 cd build
 cmake ..
 make
+```  
+  
+If everything succeeds you should have a `dirtyJtag.uf2` file that you can directly upload to the Pi Pico.  
+Alternatively you can use  
 ```
-
-If everything succeeds you should have a `dirtyJtag.uf2` file that you can directly upload to the Pi Pico.
-
-## JTAG Usage
-
-Once the board is running `pico-dirtyJtag` and connected to your host you will see a new USB device
-
+cmake -DPICO_BOARD=pico2 --fresh ..
+make -j4
+```  
+to configure for the Pi Pico2.  
+The `--fresh` flag is useful if you want to start the configure process from scratch.  
+It is not needed for normal use case.  
+The `-j4` flag should speed up compilation.  
+  
+## JTAG Usage  
+  
+Once the board is running `pico-dirtyJtag` and connected to your host you will see a new USB device  
+  
 ```
 $ lsusb
 ...
 Bus 003 Device 112: ID 1209:c0ca Generic Jean THOMAS DirtyJTAG
 ...
-```
-
-You can connect to JTAG functionality using `UrJTAG`, `openFPGALoader` or other JTAG tools.  Depending on how your system is set up, you may have to run these commands as root.
-
-For example, using `openFPGALoader`, the following command will connect to the Pico and read the IDCODE from the attached device:
-
+```  
+  
+You can connect to JTAG functionality using [UrJTAG](https://urjtag.sourceforge.io), [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or other JTAG tools.  
+Depending on how your system is set up, you may have to run these commands as root.  
+  
+For example, using `openFPGALoader`, the following command will connect to the Pico and read the IDCODE from the attached device:  
+  
 ```
 > sudo openFPGALoader --cable dirtyJtag --detect
 Jtag frequency : requested 6000000Hz -> real 6000000Hz
@@ -108,10 +130,10 @@ index 0:
 	family ECP5
 	model  LFE5UM-45
 	irlength 8
-```
-
-`UrTag` use is similar:
-
+```  
+  
+`UrTag` use is similar:  
+  
 ```
 $ sudo jtag
 
@@ -136,15 +158,16 @@ Device Id: 01000001000100010010000001000011 (0x41112043)
   Stepping:     0
   Filename:     /usr/local/share/urjtag/lattice/lfe5u-45f-cabga256/lfe5u-45f-cabga256
 jtag> 
-```
-
-## Debug UART
-
-Once connected, a new port appears as an additional USB interface.  This port can be opened from a terminal emulation program or by custom code.
-
+```  
+  
+## Debug UART  
+  
+Once connected, a new port appears as an additional USB interface.  
+This port can be opened from a terminal emulation program or by custom code.  
+  
 ```
 $ ls -la /dev/tty*
 ...
 crw-rw---- 1 root  dialout 166,  0 May 28 08:25 /dev/ttyACM0
 ...
-```
+```  
