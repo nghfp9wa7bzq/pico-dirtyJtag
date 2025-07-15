@@ -2,6 +2,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2020-2022 Patrick Dussud
+ * Copyright (c) 2025 nghfp9wa7bzq@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +40,9 @@ typedef struct dj_jtag_inst {
     uint pin_trst;
 } dj_jtag_inst_t;
 
-void dj_jtag_init(dj_jtag_inst_t *jtag);
+void dj_jtag_init();
+
+void dj_jtag_task();
 
 void jtag_set_clk_freq(const dj_jtag_inst_t *jtag, uint freq_khz);
 

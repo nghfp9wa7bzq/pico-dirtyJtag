@@ -47,7 +47,7 @@
 // Enable second CPU core (core1)
 // and divide workload between cores.
 // Default is 1 - use both cores.
-#define MULTICORE 1
+#define MULTICORE 0
 
 // USB -> JTAG
 // TinyUSB receives data from host.

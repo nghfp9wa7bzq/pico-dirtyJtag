@@ -2,6 +2,10 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2020-2025 Patrick Dussud
+ * Copyright (c) 2021 jeanthom
+ * Copyright (c) 2023 David Williams (davidthings)
+ * Copyright (c) 2023 Chandler Klüser
+ * Copyright (c) 2025 nghfp9wa7bzq@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +29,22 @@
 
 #include <hardware/clocks.h>
 #include <pico/binary_info.h>
+#include <tusb.h>
 
 #include "dirtyJtag.h"
+#include "dj_cmd.h"
 #include "dj_dma.h"
 #include "dj_jtag.h"
+#include "dj_led.h"
 #include "jtag.pio.h"
+
+static dj_jtag_inst_t jtag_inst = { .pio = pio0, .sm = 0 };
+static dj_jtag_inst_t *jtag = &jtag_inst;
+
+typedef uint8_t cmd_buffer[VENDOR_BUFFER_SIZE];
+static cmd_buffer rx_buf;
+static cmd_buffer tx_buf;
+static uint32_t bytes_available = 0;
 
 // This is used for the PIO interface.
 static bool last_tdo = false;
@@ -148,7 +163,7 @@ void __time_critical_func(dj_jtag_write)(const dj_jtag_inst_t *jtag,
     }
 }
 
-void dj_jtag_init(dj_jtag_inst_t *jtag)
+void dj_jtag_init()
 {
     uint freq = 1000;
 
@@ -189,6 +204,35 @@ void dj_jtag_init(dj_jtag_inst_t *jtag)
 #if JTAG_DMA
     dma_init();
 #endif
+}
+
+void dj_jtag_task()
+{
+    // If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
+    // after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one.
+    // The DJTAG protocol does not tolerate this.
+    tud_task(); // tinyusb device task
+
+    // Get the number of available bytes and only transfer that many,
+    // instead of the whole buffer.
+    bytes_available = 0;
+    if (bytes_available = tud_vendor_available()) {
+        led_rx(1);
+        uint count = tud_vendor_read(rx_buf, bytes_available);
+        if (count != 0) {
+            cmd_handle(jtag, rx_buf, count, tx_buf);
+        }
+        led_rx(0);
+    }
+}
+
+// This is to work around the fact that tinyUSB does not handle setup request automatically.
+bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
+                                tusb_control_request_t const *request)
+{
+    if (stage != CONTROL_STAGE_SETUP)
+        return true;
+    return false;
 }
 
 void jtag_set_clk_freq(const dj_jtag_inst_t *jtag, uint freq_khz)
