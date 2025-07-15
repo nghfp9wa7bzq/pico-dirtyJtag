@@ -219,9 +219,9 @@ void jtag_set_clk_freq(const dj_jtag_inst_t *jtag, uint freq_khz)
 {
     uint clk_sys_freq_khz = clock_get_hz(clk_sys) / 1000;
     float divf = (float)clk_sys_freq_khz / (freq_khz * 4);
-    uint16_t divider = (divf > (int)divf) ? (int)divf + 1 : (int)divf;
+    uint32_t divider = (divf > (int)divf) ? (int)divf + 1 : (int)divf;
     divider = (divider < 2) ? 2 : divider; // max. reliable freq.
-    pio_sm_set_clkdiv_int_frac(pio0, jtag->sm, divider, 0);
+    pio_sm_set_clkdiv_int_frac8(pio0, jtag->sm, divider, 0);
 }
 
 void jtag_transfer(const dj_jtag_inst_t *jtag, uint32_t length,
