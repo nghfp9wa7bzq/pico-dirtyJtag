@@ -148,31 +148,6 @@ void __time_critical_func(dj_jtag_write)(const dj_jtag_inst_t *jtag,
     }
 }
 
-void __time_critical_func(dj_jtag_write_blocking)(const dj_jtag_inst_t *jtag,
-                                                  const uint8_t *bsrc,
-                                                  size_t len)
-{
-    // const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len
-    dj_jtag_write(jtag, bsrc, NULL, false, false, len);
-}
-
-void __time_critical_func(dj_jtag_write_read_blocking)(
-    const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, size_t len)
-{
-    // const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len
-    dj_jtag_write(jtag, bsrc, bdst, false, false, len);
-}
-
-uint8_t
-__time_critical_func(dj_jtag_write_tms_blocking)(const dj_jtag_inst_t *jtag,
-                                                 bool tdi, bool tms, size_t len)
-{
-    // const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len
-    dj_jtag_write(jtag, NULL, NULL, tdi, tms, len);
-
-    return last_tdo ? 0xFF : 0x00;
-}
-
 void dj_jtag_init(dj_jtag_inst_t *jtag)
 {
     uint freq = 1000;
@@ -232,9 +207,15 @@ void jtag_transfer(const dj_jtag_inst_t *jtag, uint32_t length,
     jtag_set_pin(jtag, jtag->pin_tms, false);
 
     if (out)
-        dj_jtag_write_read_blocking(jtag, in, out, length);
+        // Before: dj_jtag_write_read_blocking(jtag, in, out, length);
+        // const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, size_t len
+        // Now: const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len
+        dj_jtag_write(jtag, in, out, false, false, length);
     else
-        dj_jtag_write_blocking(jtag, in, length);
+        // Before: dj_jtag_write_blocking(jtag, in, length);
+        // const dj_jtag_inst_t *jtag, const uint8_t *bsrc, size_t len
+        // Now: const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len
+        dj_jtag_write(jtag, in, NULL, false, false, length);
 }
 
 uint8_t jtag_strobe(const dj_jtag_inst_t *jtag, uint32_t length, bool tms,
@@ -243,7 +224,12 @@ uint8_t jtag_strobe(const dj_jtag_inst_t *jtag, uint32_t length, bool tms,
     if (length == 0)
         return last_tdo ? 0xFF : 0x00;
     else
-        return dj_jtag_write_tms_blocking(jtag, tdi, tms, length);
+        // Before: return dj_jtag_write_tms_blocking(jtag, tdi, tms, length);
+        // const dj_jtag_inst_t *jtag, bool tdi, bool tms, size_t len
+        // Now: const dj_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst, bool tdi, bool tms, size_t len
+        dj_jtag_write(jtag, NULL, NULL, tdi, tms, length);
+
+        return last_tdo ? 0xFF : 0x00;
 }
 
 void jtag_set_pin(const dj_jtag_inst_t *jtag, uint pin, bool value)

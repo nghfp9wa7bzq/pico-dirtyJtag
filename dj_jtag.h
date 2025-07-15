@@ -41,15 +41,6 @@ typedef struct dj_jtag_inst {
 
 void dj_jtag_init(dj_jtag_inst_t *jtag);
 
-void dj_jtag_write_blocking(const dj_jtag_inst_t *jtag, const uint8_t *src,
-                            size_t len);
-
-void dj_jtag_write_read_blocking(const dj_jtag_inst_t *jtag, const uint8_t *src,
-                                 uint8_t *dst, size_t len);
-
-uint8_t dj_jtag_write_tms_blocking(const dj_jtag_inst_t *jtag, bool tdi,
-                                   bool tms, size_t len);
-
 void jtag_set_clk_freq(const dj_jtag_inst_t *jtag, uint freq_khz);
 
 void jtag_transfer(const dj_jtag_inst_t *jtag, uint32_t length,
