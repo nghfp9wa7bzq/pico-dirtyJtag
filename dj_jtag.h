@@ -58,28 +58,7 @@ void jtag_transfer(const dj_jtag_inst_t *jtag, uint32_t length,
 uint8_t jtag_strobe(const dj_jtag_inst_t *jtag, uint32_t length, bool tms,
                     bool tdi);
 
-static inline void jtag_set_tms(const dj_jtag_inst_t *jtag, bool value)
-{
-    gpio_put(jtag->pin_tms, value);
-}
-static inline void jtag_set_rst(const dj_jtag_inst_t *jtag, bool value)
-{
-    /* Change the direction to out to drive pin to 0 or to in to emulate open drain */
-    gpio_set_dir(jtag->pin_rst, !value);
-}
-static inline void jtag_set_trst(const dj_jtag_inst_t *jtag, bool value)
-{
-    gpio_put(jtag->pin_trst, value);
-}
-
-// The following APIs assume that they are called in the following order:
-// 1. jtag_set_XXX() where XXX is any pin. if XXX is CLK, it needs to be false.
-// 2. jtag_set_clk(), where CLK is true will initiate a one cycle dj_jtag_write_read_blocking.
-// 3. Optionally jtag_get_tdo(), which will get what was read during the previous step.
-void jtag_set_tdi(const dj_jtag_inst_t *jtag, bool value);
-
-void jtag_set_clk(const dj_jtag_inst_t *jtag, bool value);
-
-bool jtag_get_tdo(const dj_jtag_inst_t *jtag);
+void jtag_set_pin(const dj_jtag_inst_t *jtag, uint pin, bool value);
+bool jtag_get_pin(const dj_jtag_inst_t *jtag, uint pin);
 
 #endif // DJ_JTAG_H

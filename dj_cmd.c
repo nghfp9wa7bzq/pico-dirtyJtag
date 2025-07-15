@@ -246,23 +246,23 @@ static void cmd_setsig(dj_jtag_inst_t *jtag, const uint8_t *commands)
     signal_status = commands[2];
 
     if (signal_mask & SIG_TCK) {
-        jtag_set_clk(jtag, signal_status & SIG_TCK);
+        jtag_set_pin(jtag, jtag->pin_tck, signal_status & SIG_TCK);
     }
 
     if (signal_mask & SIG_TDI) {
-        jtag_set_tdi(jtag, signal_status & SIG_TDI);
+        jtag_set_pin(jtag, jtag->pin_tdi, signal_status & SIG_TDI);
     }
 
     if (signal_mask & SIG_TMS) {
-        jtag_set_tms(jtag, signal_status & SIG_TMS);
+        jtag_set_pin(jtag, jtag->pin_tms, signal_status & SIG_TMS);
     }
 
     if (signal_mask & SIG_TRST) {
-        jtag_set_trst(jtag, signal_status & SIG_TRST);
+        jtag_set_pin(jtag, jtag->pin_trst, signal_status & SIG_TRST);
     }
 
     if (signal_mask & SIG_SRST) {
-        jtag_set_rst(jtag, signal_status & SIG_SRST);
+        jtag_set_pin(jtag, jtag->pin_rst, signal_status & SIG_SRST);
     }
 }
 
@@ -270,7 +270,7 @@ static uint32_t cmd_getsig(dj_jtag_inst_t *jtag, uint8_t *buffer)
 {
     uint8_t signal_status = 0;
 
-    if (jtag_get_tdo(jtag)) {
+    if (jtag_get_pin(jtag, jtag->pin_tdo)) {
         signal_status |= SIG_TDO;
     }
     buffer[0] = signal_status;

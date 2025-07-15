@@ -31,6 +31,7 @@
 #include "dj_jtag.h"
 #include "jtag.pio.h"
 
+// This is used for the PIO interface.
 static bool last_tdo = false;
 
 #if JTAG_DMA
@@ -228,7 +229,7 @@ void jtag_transfer(const dj_jtag_inst_t *jtag, uint32_t length,
                    const uint8_t *in, uint8_t *out)
 {
     // Set tms to low.
-    jtag_set_tms(jtag, false);
+    jtag_set_pin(jtag, jtag->pin_tms, false);
 
     if (out)
         dj_jtag_write_read_blocking(jtag, in, out, length);
@@ -240,28 +241,28 @@ uint8_t jtag_strobe(const dj_jtag_inst_t *jtag, uint32_t length, bool tms,
                     bool tdi)
 {
     if (length == 0)
-        return jtag_get_tdo(jtag) ? 0xFF : 0x00;
+        return last_tdo ? 0xFF : 0x00;
     else
         return dj_jtag_write_tms_blocking(jtag, tdi, tms, length);
 }
 
-static uint8_t toggle_bits_out_buffer[4];
-static uint8_t toggle_bits_in_buffer[4];
-
-void jtag_set_tdi(const dj_jtag_inst_t *jtag, bool value)
+void jtag_set_pin(const dj_jtag_inst_t *jtag, uint pin, bool value)
 {
-    toggle_bits_out_buffer[0] = value ? 1u << 7 : 0;
-}
-
-void jtag_set_clk(const dj_jtag_inst_t *jtag, bool value)
-{
-    if (value) {
-        dj_jtag_write_read_blocking(jtag, toggle_bits_out_buffer,
-                                     toggle_bits_in_buffer, 1);
+// If for some reason a program wants to change a reset
+// pin on a board that does not support them,
+// this check disregards 'value' and returns.
+#if NO_RST_PINS
+    if ((pin == jtag->pin_rst) || (pin == jtag->pin_rst)) {
+        (void)value;
+        return;
     }
+#endif
+
+    gpio_put(pin, value);
 }
 
-bool jtag_get_tdo(const dj_jtag_inst_t *jtag)
+// This is used for cmd_getsig().
+bool jtag_get_pin(const dj_jtag_inst_t *jtag, uint pin)
 {
-    return last_tdo;
+    return gpio_get(pin);
 }
